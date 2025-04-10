@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dragon's Den: Escape Trials</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }
+    .door { display: inline-block; width: 80px; height: 120px; background: #555; margin: 10px; cursor: pointer; border: 2px solid #fff; }
+    #doorsContainer { margin: 20px auto; }
+    #status { font-size: 1.5em; margin-top: 20px; }
+    button { margin-top: 20px; padding: 10px 20px; }
+  </style>
+</head>
+<body>
+
+<h1>🐉 Dragon's Den: Escape Trials</h1>
+<p>Choose a door quietly... the dragon might wake up!</p>
+<div id="levelDisplay">Level: 1</div>
+<div id="doorsContainer"></div>
+<div id="status"></div>
+<button onclick="nextLevel()" style="display:none;" id="nextBtn">Next Level</button>
+
+<script>
+  let level = 1;
+  let dragonDoor = 0;
+  let gameOver = false;
+
+  const doorsContainer = document.getElementById("doorsContainer");
+  const status = document.getElementById("status");
+  const levelDisplay = document.getElementById("levelDisplay");
+  const nextBtn = document.getElementById("nextBtn");
+
+  function setupLevel() {
+    doorsContainer.innerHTML = '';
+    status.textContent = '';
+    nextBtn.style.display = "none";
+    gameOver = false;
+
+    const numDoors = level + 2; // Starts with 3 doors
+    dragonDoor = Math.floor(Math.random() * numDoors);
+
+    for (let i = 0; i < numDoors; i++) {
+      const door = document.createElement('div');
+      door.className = 'door';
+      door.textContent = `Door ${i + 1}`;
+      door.onclick = () => handleDoorClick(i);
+      doorsContainer.appendChild(door);
+    }
+  }
+
+  function handleDoorClick(index) {
+    if (gameOver) return;
+
+    if (index === dragonDoor) {
+      status.textContent = "🔥 The dragon was behind this door! You got burned!";
+      gameOver = true;
+    } else {
+      status.textContent = "✅ You escaped safely!";
+      nextBtn.style.display = "inline-block";
+    }
+  }
+
+  function nextLevel() {
+    level++;
+    levelDisplay.textContent = `Level: ${level}`;
+    setupLevel();
+  }
+
+  // 🔊 Microphone Noise Detection
+  async function initMic() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new AudioContext();
+      const micSource = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      micSource.connect(analyser);
+
+      const data = new Uint8Array(analyser.fftSize);
+
+      function checkNoise() {
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          sum += Math.abs(data[i] - 128);
+        }
+
+        const volume = sum / data.length;
+
+        if (volume > 15 && !gameOver) {
+          status.textContent = "😱 You made too much noise! The dragon woke up!";
+          gameOver = true;
+        }
+
+        requestAnimationFrame(checkNoise);
+      }
+
+      checkNoise();
+    } catch (err) {
+      alert("Microphone access denied. Game will be harder!");
+    }
+  }
+
+  setupLevel();
+  initMic();
+</script>
+
+</body>
+</html>
